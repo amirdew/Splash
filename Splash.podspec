@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = "Splash"
-  s.version          = "1.0"
+  s.version          = "0.13.0"
   s.summary          = "Swift syntax highlighter"
  
   s.description      = <<-DESC
