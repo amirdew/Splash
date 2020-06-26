@@ -12,5 +12,5 @@ Pod::Spec.new do |s|
   s.author           = { "JohnSundell" => "@JohnSundell" }
   s.source           = { :git => "https://github.com/amirdew/Splash.git", :tag => "#{s.version}" } 
 
-  s.source_files = "Sources/**/*.swift"
+  s.source_files = "Sources/Splash/**/*.swift"
 end
