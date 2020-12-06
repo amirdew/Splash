@@ -53,9 +53,13 @@ public struct SwiftGrammar: Grammar {
             return false
         case ("(", _) where delimiterB != ".":
             return false
-        case (".", "/"):
+        case (".", "/"), (",", "/"):
             return false
         case ("{", "/"), ("}", "/"):
+            return false
+        case ("[", "/"), ("]", "/"):
+            return false
+        case (">", "/"), ("?", "/"):
             return false
         default:
             return true
@@ -265,6 +269,11 @@ private extension SwiftGrammar {
                 return false
             }
 
+            // Never highlight initializers as regular function calls
+            if token == "init" {
+                return false
+            }
+
             // There's a few keywords that might look like function calls
             if callLikeKeywords.contains(segment.tokens.current) {
                 if let nextToken = segment.tokens.next {
@@ -305,8 +314,10 @@ private extension SwiftGrammar {
                     return false
                 }
 
-                guard !keywords.contains(segment.tokens.current) else {
-                    return false
+                if segment.tokens.previous != "." || segment.tokens.onSameLine.isEmpty {
+                    guard !keywords.contains(segment.tokens.current) else {
+                        return false
+                    }
                 }
 
                 return !segment.tokens.onSameLine.contains(anyOf: controlFlowTokens)
@@ -320,6 +331,10 @@ private extension SwiftGrammar {
         var tokenType: TokenType { return .keyword }
 
         func matches(_ segment: Segment) -> Bool {
+            if segment.tokens.current == "_" {
+                return true
+            }
+
             if segment.tokens.current == "prefix" && segment.tokens.next == "func" {
                 return true
             }
@@ -330,16 +345,7 @@ private extension SwiftGrammar {
                 }
             }
 
-            if segment.tokens.next == ":" {
-                // Nil pattern matching inside of a switch statement case
-                if segment.tokens.current == "nil" {
-                    guard let previousToken = segment.tokens.previous else {
-                        return false
-                    }
-
-                    return previousToken.isAny(of: "case", ",")
-                }
-
+            if segment.tokens.next == ":", segment.tokens.current != "nil" {
                 guard segment.tokens.current == "default" else {
                     return false
                 }
@@ -370,7 +376,7 @@ private extension SwiftGrammar {
                     }
 
                     // Don't highlight most keywords when used as a parameter label
-                    if !segment.tokens.current.isAny(of: "_", "self", "let", "var", "true", "false", "inout", "nil", "try") {
+                    if !segment.tokens.current.isAny(of: "self", "let", "var", "true", "false", "inout", "nil", "try") {
                         guard !previousToken.isAny(of: "(", ",", ">(") else {
                             return false
                         }
@@ -417,14 +423,14 @@ private extension SwiftGrammar {
             }
 
             // In a generic declaration, only highlight constraints
-            if segment.tokens.previous.isAny(of: "<", ",") {
+            if segment.tokens.previous.isAny(of: "<", ",", "*/") {
                 var foundOpeningBracket = false
 
                 // Since the declaration might be on another line, we have to walk
                 // backwards through all tokens until we've found enough information.
                 for token in segment.tokens.all.reversed() {
                     // Highlight return type generics as normal
-                    if token == "->" {
+                    if token.isAny(of: "->", ">", ">:") {
                         return true
                     }
 
@@ -433,8 +439,10 @@ private extension SwiftGrammar {
                     }
 
                     // Handling generic lists for parameters, rather than declarations
-                    if foundOpeningBracket && token.isAny(of: ":", ">:") {
-                        return true
+                    if foundOpeningBracket {
+                        if token == ":" || token.first == "@" {
+                            return true
+                        }
                     }
 
                     guard !declarationKeywords.contains(token) else {
@@ -447,7 +455,7 @@ private extension SwiftGrammar {
                         return true
                     }
 
-                    if token.isAny(of: ">", "=", "==", "(") {
+                    if token.isAny(of: "=", "==", "(") {
                         return true
                     }
                 }
@@ -493,6 +501,18 @@ private extension SwiftGrammar {
         var tokenType: TokenType { return .property }
 
         func matches(_ segment: Segment) -> Bool {
+            let currentToken = segment.tokens.current
+
+            if currentToken.first == "$" {
+                let secondIndex = currentToken.index(after: currentToken.startIndex)
+
+                guard secondIndex != currentToken.endIndex else {
+                    return false
+                }
+
+                return currentToken[secondIndex].isLetter
+            }
+
             guard !segment.tokens.onSameLine.isEmpty else {
                 return false
             }
@@ -501,11 +521,11 @@ private extension SwiftGrammar {
                 return false
             }
 
-            guard segment.tokens.previous.isAny(of: ".", "?.", "().", ").") else {
+            guard segment.tokens.previous.isAny(of: ".", "?.", "().", ").", ">.") else {
                 return false
             }
 
-            guard segment.tokens.current != "self" else {
+            guard !currentToken.isAny(of: "self", "init") else {
                 return false
             }
 
@@ -625,6 +645,6 @@ private extension Segment {
             return false
         }
 
-        return firstCharacter == "_" || firstCharacter.isLetter
+        return firstCharacter == "_" || firstCharacter == "$" || firstCharacter.isLetter
     }
 }

@@ -682,6 +682,47 @@ final class DeclarationTests: SyntaxHighlighterTestCase {
         ])
     }
 
+    func testPropertyWithCommentedDidSet() {
+        let components = highlighter.highlight("""
+        struct Hello {
+            var property: Int {
+                // Comment.
+                didSet { }
+            }
+        }
+        """)
+
+        XCTAssertEqual(components, [
+            .token("struct", .keyword),
+            .whitespace(" "),
+            .plainText("Hello"),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace("\n    "),
+            .token("var", .keyword),
+            .whitespace(" "),
+            .plainText("property:"),
+            .whitespace(" "),
+            .token("Int", .type),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace("\n        "),
+            .token("//", .comment),
+            .whitespace(" "),
+            .token("Comment.", .comment),
+            .whitespace("\n        "),
+            .token("didSet", .keyword),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace(" "),
+            .plainText("}"),
+            .whitespace("\n    "),
+            .plainText("}"),
+            .whitespace("\n"),
+            .plainText("}")
+        ])
+    }
+
     func testPropertyWithSetterAccessLevel() {
         let components = highlighter.highlight("""
         struct Hello {
@@ -726,6 +767,36 @@ final class DeclarationTests: SyntaxHighlighterTestCase {
             .plainText("="),
             .whitespace(" "),
             .token("7", .number)
+        ])
+    }
+
+    func testPropertyDeclarationWithStaticPropertyDefaultValue() {
+        let components = highlighter.highlight("""
+        class ViewModel {
+            var state = LoadingState<Output>.idle
+        }
+        """)
+
+        XCTAssertEqual(components, [
+            .token("class", .keyword),
+            .whitespace(" "),
+            .plainText("ViewModel"),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace("\n    "),
+            .token("var", .keyword),
+            .whitespace(" "),
+            .plainText("state"),
+            .whitespace(" "),
+            .plainText("="),
+            .whitespace(" "),
+            .token("LoadingState", .type),
+            .plainText("<"),
+            .token("Output", .type),
+            .plainText(">."),
+            .token("idle", .property),
+            .whitespace("\n"),
+            .plainText("}")
         ])
     }
 
@@ -846,6 +917,24 @@ final class DeclarationTests: SyntaxHighlighterTestCase {
             .plainText("{"),
             .whitespace(" "),
             .plainText("}")
+        ])
+    }
+
+    func testFunctionDeclarationWithIgnoredParameter() {
+        let components = highlighter.highlight("func perform(with _: Void) {}")
+
+        XCTAssertEqual(components, [
+            .token("func", .keyword),
+            .whitespace(" "),
+            .plainText("perform(with"),
+            .whitespace(" "),
+            .token("_", .keyword),
+            .plainText(":"),
+            .whitespace(" "),
+            .token("Void", .type),
+            .plainText(")"),
+            .whitespace(" "),
+            .plainText("{}")
         ])
     }
 
@@ -1093,6 +1182,33 @@ final class DeclarationTests: SyntaxHighlighterTestCase {
         ])
     }
 
+    func testPropertyWrapperDeclaration() {
+        let components = highlighter.highlight("""
+        @propertyWrapper
+        struct Wrapped<Value> {
+            var wrappedValue: Value
+        }
+        """)
+
+        XCTAssertEqual(components, [
+            .token("@propertyWrapper", .keyword),
+            .whitespace("\n"),
+            .token("struct", .keyword),
+            .whitespace(" "),
+            .plainText("Wrapped<Value>"),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace("\n    "),
+            .token("var", .keyword),
+            .whitespace(" "),
+            .plainText("wrappedValue:"),
+            .whitespace(" "),
+            .token("Value", .type),
+            .whitespace("\n"),
+            .plainText("}")
+        ])
+    }
+
     func testWrappedPropertyDeclarations() {
         let components = highlighter.highlight("""
         struct User {
@@ -1146,6 +1262,37 @@ final class DeclarationTests: SyntaxHighlighterTestCase {
             .plainText("name:"),
             .whitespace(" "),
             .token("String", .type),
+            .whitespace("\n"),
+            .plainText("}")
+        ])
+    }
+
+    func testWrappedPropertyDeclarationUsingExplicitType() {
+        let components = highlighter.highlight("""
+        struct Model {
+            @Wrapper<Bool>(key: "setting")
+            var setting
+        }
+        """)
+
+        XCTAssertEqual(components, [
+            .token("struct", .keyword),
+            .whitespace(" "),
+            .plainText("Model"),
+            .whitespace(" "),
+            .plainText("{"),
+            .whitespace("\n    "),
+            .token("@Wrapper", .keyword),
+            .plainText("<"),
+            .token("Bool", .type),
+            .plainText(">(key:"),
+            .whitespace(" "),
+            .token(#""setting""#, .string),
+            .plainText(")"),
+            .whitespace("\n    "),
+            .token("var", .keyword),
+            .whitespace(" "),
+            .plainText("setting"),
             .whitespace("\n"),
             .plainText("}")
         ])
@@ -1217,12 +1364,15 @@ extension DeclarationTests {
             ("testGenericPropertyDeclaration", testGenericPropertyDeclaration),
             ("testPropertyDeclarationWithWillSet", testPropertyDeclarationWithWillSet),
             ("testPropertyDeclarationWithDidSet", testPropertyDeclarationWithDidSet),
+            ("testPropertyWithCommentedDidSet", testPropertyWithCommentedDidSet),
             ("testPropertyWithSetterAccessLevel", testPropertyWithSetterAccessLevel),
             ("testPropertyDeclarationAfterCommentEndingWithVarKeyword", testPropertyDeclarationAfterCommentEndingWithVarKeyword),
+            ("testPropertyDeclarationWithStaticPropertyDefaultValue", testPropertyDeclarationWithStaticPropertyDefaultValue),
             ("testSubscriptDeclaration", testSubscriptDeclaration),
             ("testGenericSubscriptDeclaration", testGenericSubscriptDeclaration),
             ("testDeferDeclaration", testDeferDeclaration),
             ("testFunctionDeclarationWithInOutParameter", testFunctionDeclarationWithInOutParameter),
+            ("testFunctionDeclarationWithIgnoredParameter", testFunctionDeclarationWithIgnoredParameter),
             ("testFunctionDeclarationWithNonEscapedKeywordAsName", testFunctionDeclarationWithNonEscapedKeywordAsName),
             ("testFunctionDeclarationWithEscapedKeywordAsName", testFunctionDeclarationWithEscapedKeywordAsName),
             ("testFunctionDeclarationWithPreProcessors", testFunctionDeclarationWithPreProcessors),
@@ -1232,8 +1382,10 @@ extension DeclarationTests {
             ("testPrefixFunctionDeclaration", testPrefixFunctionDeclaration),
             ("testEnumDeclarationWithSomeCase", testEnumDeclarationWithSomeCase),
             ("testIndirectEnumDeclaration", testIndirectEnumDeclaration),
+            ("testPropertyWrapperDeclaration", testPropertyWrapperDeclaration),
             ("testWrappedPropertyDeclarations", testWrappedPropertyDeclarations),
             ("testWrappedPropertyDeclarationUsingNestedType", testWrappedPropertyDeclarationUsingNestedType),
+            ("testWrappedPropertyDeclarationUsingExplicitType", testWrappedPropertyDeclarationUsingExplicitType),
             ("testGenericInitializerDeclaration", testGenericInitializerDeclaration)
         ]
     }
